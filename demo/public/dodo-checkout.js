@@ -30,8 +30,8 @@ var DodoCheckoutSDK = (() => {
     messageHandler = null;
     loadTimer = null;
     previousBodyOverflow = "";
-    checkoutOrigin = "http://localhost:5174";
-    checkoutUrl = `${this.checkoutOrigin}/`;
+    checkoutOrigin = window.location.port === "5173" ? "http://localhost:5174" : window.location.origin;
+    checkoutUrl = this.checkoutOrigin === window.location.origin ? `${this.checkoutOrigin}/checkout/` : `${this.checkoutOrigin}/`;
     open(options) {
       if (this.iframe) {
         return;

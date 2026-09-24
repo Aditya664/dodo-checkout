@@ -253,4 +253,13 @@ class DodoCheckoutSDK {
 const DodoCheckout = new DodoCheckoutSDK();
 
 declare global {
-  interface Window {
+  interface Window {
+    DodoCheckout: DodoCheckoutSDK;
+  }
+}
+if (typeof window !== "undefined") {
+  window.DodoCheckout = DodoCheckout;
+}
+export { DodoCheckout };
+
+export default DodoCheckout;

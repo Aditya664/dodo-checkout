@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: dodo-checkout-demo
+    runtime: static
+    buildCommand: bash scripts/build-render.sh
+    staticPublishPath: demo/dist
+    routes:
+      - type: rewrite
+        source: /checkout/*
+        destination: /checkout/index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html

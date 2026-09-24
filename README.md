@@ -26,6 +26,29 @@ The demo lets you choose between three fake products before opening checkout.
 The checkout runs at `localhost:5174` in an iframe, so card fields belong to
 the checkout origin rather than the merchant page.
 
+## Deploy to Render
+
+This repository includes a Render Blueprint in [`render.yaml`](./render.yaml).
+It deploys one static site containing both apps:
+
+- `/` serves the demo.
+- `/checkout/` serves the hosted checkout iframe.
+
+Using one static site makes the production iframe same-origin with the demo
+while keeping the checkout UI and card fields isolated in a separate document.
+
+To deploy:
+
+1. Push the repository to GitHub or GitLab.
+2. In Render, choose **New > Blueprint**.
+3. Select the repository and apply `render.yaml`.
+4. Open the generated `onrender.com` URL.
+
+The build is performed by [`scripts/build-render.sh`](./scripts/build-render.sh).
+It builds both Vite apps and copies the checkout output into
+`demo/dist/checkout`. The SDK automatically uses `/checkout/` in production
+and `localhost:5174` when running the two local dev servers.
+
 ## The embed API
 
 The host page adds the bundled script and opens checkout:
@@ -118,7 +141,7 @@ payment, and programmatic close each produce a host callback.
 - Add focus trapping and an explicit parent-page focus restoration strategy.
 - Test browser/device behavior around iframe loading, network interruption,
   refresh, and back-button navigation.
-- Deploy the checkout and demo over HTTPS and add a short screen recording.
+- Add a custom domain and a short screen recording.
 
 ## Validation
 
