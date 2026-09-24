@@ -27,14 +27,14 @@ export async function processPayment(
     };
   }
 
-  // Simulate payment processing/network delay
   await delay(1200);
 
   if (!navigator.onLine) {
     return {
       success: false,
       code: "NETWORK_ERROR",
-      message: "Connection lost while processing. No payment was confirmed. Try again.",
+      message:
+        "Connection lost while processing. No payment was confirmed. Try again.",
     };
   }
 

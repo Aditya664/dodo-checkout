@@ -80,6 +80,15 @@ function App() {
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
 
   useEffect(() => {
+    if (window.top === window.self) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setErrorMessage(
+        "This checkout can only be opened from the Dodo Checkout button.",
+      );
+      setCheckoutState("error");
+      return;
+    }
+
     const params = new URLSearchParams(window.location.search);
     const productId = params.get("productId") || "prod_123";
     const selectedProduct = PRODUCTS[productId];
@@ -196,7 +205,11 @@ function App() {
           <Card className="checkout-card">
             <Result
               status="error"
-              title="Checkout unavailable"
+              title={
+                errorMessage.includes("only be opened")
+                  ? "Open checkout from the store"
+                  : "Checkout unavailable"
+              }
               subTitle={errorMessage}
               extra={<Button onClick={handleClose}>Close</Button>}
             />

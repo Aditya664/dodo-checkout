@@ -22,6 +22,11 @@ The flow is intentionally simple:
 
 Card details never leave the checkout iframe.
 
+Opening `/checkout/` directly is intentionally blocked. The checkout only
+initializes when it is embedded by the SDK, so customers enter payment details
+inside the intended merchant flow rather than treating the hosted form as a
+standalone page.
+
 ## Run locally
 
 Install dependencies:
