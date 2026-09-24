@@ -1,4 +1,10 @@
 {
+  "name": "dodo-checkout",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/serve-render.mjs",
+    "start": "node scripts/serve-render.mjs"
+  },
   "dependencies": {
     "antd": "^6.6.5"
   },

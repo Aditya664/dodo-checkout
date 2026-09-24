@@ -44,6 +44,18 @@ To deploy:
 3. Select the repository and apply `render.yaml`.
 4. Open the generated `onrender.com` URL.
 
+If the Render service was created manually as a Web Service instead of from
+the Blueprint, use:
+
+- **Build command:** `bash scripts/build-render.sh`
+- **Start command:** `npm start`
+- **Environment:** Node
+
+The root `npm start` serves the already-built `demo/dist` folder on Render's
+`PORT`. `npm run dev` is also available as a compatibility alias for an
+existing service configured with that command; it is not the Vite development
+server.
+
 The build is performed by [`scripts/build-render.sh`](./scripts/build-render.sh).
 It builds both Vite apps and copies the checkout output into
 `demo/dist/checkout`. The SDK automatically uses `/checkout/` in production
