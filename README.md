@@ -1,90 +1,71 @@
 # Dodo Checkout
 
-Small embeddable checkout demo for the Dodo Payments assignment.
-
-## What is here?
-
-```text
-sdk/                 iframe SDK used by the merchant page
-demo/                example store and callback log
-checkout/            payment form and fake payment logic
-scripts/             Render build script
-render.yaml          one-click Render Static Site configuration
-```
-
-The flow is intentionally simple:
-
-1. The demo selects a fake product.
-2. `DodoCheckout.open(...)` creates an iframe.
-3. The checkout collects email and card details.
-4. The checkout sends payment events with `postMessage`.
-5. The SDK calls `onSuccess`, `onError`, or `onClose`.
-
-Card details never leave the checkout iframe.
-
-Opening `/checkout/` directly is intentionally blocked. The checkout only
-initializes when it is embedded by the SDK, so customers enter payment details
-inside the intended merchant flow rather than treating the hosted form as a
-standalone page.
+A small embeddable checkout demo. The demo website opens a separate checkout
+app inside an iframe through a plain TypeScript SDK.
 
 ## Run locally
 
 Install dependencies:
 
 ```bash
-cd checkout
+cd demo
 npm install
-cd ../demo
+
+cd ../checkout
 npm install
 ```
 
-Start the checkout in one terminal:
+Start the checkout app in one terminal:
 
 ```bash
 cd checkout
 npm run dev -- --host localhost --port 5174
 ```
 
-Start the demo in another terminal:
+Start the demo app in another terminal:
 
 ```bash
 cd demo
 npm run dev -- --host localhost --port 5173
 ```
 
-Open `http://localhost:5173`.
+Open **http://localhost:5173**.
 
-From the repository root, these shortcuts do the same thing:
+The root shortcuts are also available:
 
 ```bash
 npm run checkout
 npm run demo
 ```
 
-## Deploy to Render
-
-This is a **Static Site**, not a Web Service.
-
-1. Push the repository to GitHub or GitLab.
-2. In Render, choose **New > Blueprint**.
-3. Select the repository.
-4. Render reads `render.yaml` automatically.
-
-The important settings are:
+## How the pieces talk
 
 ```text
-Build command:    npm run build:render
-Publish directory: demo/dist
+demo page
+  └─ DodoCheckout.open(...)
+       └─ SDK creates iframe
+            └─ checkout app collects payment details
+                 └─ postMessage event
+                      └─ SDK calls the host callback
 ```
 
-The build creates:
+- `demo/` is the merchant website. It selects a fake product and displays
+  callback events.
+- `sdk/dodo-checkout.ts` is the embeddable SDK. It creates and removes the
+  iframe, validates message origin/source, and exposes callbacks.
+- `checkout/` is the payment form. It runs in the iframe and never sends card
+  details to the demo page.
+
+The checkout sends these events to the SDK:
 
 ```text
-demo/dist/              demo website
-demo/dist/checkout/     checkout iframe
+DODO_CHECKOUT_READY
+DODO_PAYMENT_SUCCESS
+DODO_PAYMENT_ERROR
+DODO_CHECKOUT_CLOSE
 ```
 
-## Embed API
+## SDK usage
 
 ```html
 <script src="/dodo-checkout.js"></script>
@@ -99,48 +80,36 @@ demo/dist/checkout/     checkout iframe
 </script>
 ```
 
-`amount` is only for keeping this fake demo synchronized. A real payment
-integration must use a server-created, signed checkout session for pricing.
-
 ## Test cards
 
-| Card | Result |
+| Card number | Result |
 | --- | --- |
-| `4242 4242 4242 4242` | succeeds |
-| `4000 0000 0000 0002` | declines |
-| `4000 0000 0000 0341` | fails once, then succeeds on retry |
+| `4242 4242 4242 4242` | Payment succeeds |
+| `4000 0000 0000 0002` | Payment is declined |
+| `4000 0000 0000 0341` | Fails once, succeeds on retry |
 
-## Why this flow?
+## Render deployment
 
-- Only one checkout can be open at a time, preventing duplicate overlays.
-- The pay button locks while payment is processing.
-- Declines stay in the modal so the customer can retry.
-- Load failures and timeouts notify the host and clean up the iframe.
-- If the browser goes offline during payment, the attempt stops with
-  `NETWORK_ERROR`; the modal stays open so the customer can reconnect and
-  retry, and the host receives `onError`.
-- The SDK validates the message origin and iframe source.
-- Escape closes the modal and page scrolling is restored after close.
+This project deploys as one **Render Static Site** using `render.yaml`.
 
-## Decisions and next steps
+1. Create a new Render Blueprint from this repository.
+2. Render runs `npm run build:render`.
+3. Render publishes `demo/dist`.
 
-I chose the browser History API instead of adding a router because the demo
-only needs one success route. I also pass the fake amount into the iframe so
-the product picker and checkout visibly agree; production pricing must not
-trust this client-controlled value.
+The build places the checkout app at `demo/dist/checkout`, so the deployed
+demo and iframe use the same site:
 
-Next I would add a server-created checkout session, configurable checkout
-origins, runtime message validation, focus trapping, and browser tests for
-network interruption and refresh.
-
-## Checks
-
-```bash
-cd demo
-npm run lint
-npm run build
-
-cd ../checkout
-npm run lint
-npm run build
+```text
+https://your-app.onrender.com/
+https://your-app.onrender.com/checkout/
 ```
+
+Do not deploy this as a Web Service and do not add a start command.
+
+## Important behavior
+
+- Only one checkout can be open at a time.
+- The pay button is disabled while payment is processing.
+- Declines and network failures stay in the modal and can be retried.
+- Load failures and timeouts call `onError` and clean up the iframe.
+- Opening `/checkout/` directly is blocked; it must be opened by the SDK.
