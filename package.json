@@ -2,6 +2,7 @@
   "name": "dodo-checkout",
   "private": true,
   "scripts": {
+    "build:render": "bash scripts/build-render.sh",
     "dev": "node scripts/serve-render.mjs",
     "start": "node scripts/serve-render.mjs"
   },

@@ -44,6 +44,11 @@ To deploy:
 3. Select the repository and apply `render.yaml`.
 4. Open the generated `onrender.com` URL.
 
+Do not create this as a Render **Web Service**. It is a Render **Static Site**
+Blueprint. If you configure it manually, use **Static Site**, set the build
+command to `npm run build:render`, and set the publish directory to
+`demo/dist`. Leave the start command empty.
+
 If the Render service was created manually as a Web Service instead of from
 the Blueprint, use:
 

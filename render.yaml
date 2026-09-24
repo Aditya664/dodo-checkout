@@ -2,7 +2,7 @@ services:
   - type: web
     name: dodo-checkout-demo
     runtime: static
-    buildCommand: bash scripts/build-render.sh
+    buildCommand: npm run build:render
     staticPublishPath: demo/dist
     routes:
       - type: rewrite
