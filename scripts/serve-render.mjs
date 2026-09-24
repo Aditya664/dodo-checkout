@@ -23,9 +23,17 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  const requestPath = decodeURIComponent(new URL(request.url || "/", "http://localhost").pathname);
-  const relativePath = normalize(requestPath).replace(/^([.][.][/\\])+/, "");
-  let filePath = join(root, relativePath);
+  const requestPath = decodeURIComponent(
+    new URL(request.url || "/", "http://localhost").pathname,
+  );
+  const relativePath = normalize(requestPath).replace(/^[/\\]+/, "");
+  let filePath = resolve(root, relativePath);
+
+  if (!filePath.startsWith(root)) {
+    response.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+    response.end("Invalid path");
+    return;
+  }
 
   try {
     if ((await stat(filePath)).isDirectory()) {
