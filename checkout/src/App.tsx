@@ -457,7 +457,7 @@ function App() {
         </div>
 
         {/* Test cards */}
-        <Card size="small" className="test-card">
+        {/* <Card size="small" className="test-card">
           <Text strong>Test cards</Text>
 
           <div>
@@ -477,7 +477,7 @@ function App() {
               Retry: <Text code>4000 0000 0000 0341</Text>
             </Text>
           </div>
-        </Card>
+        </Card> */}
       </Card>
     </div>
   );
