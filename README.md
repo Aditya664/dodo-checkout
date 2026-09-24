@@ -75,7 +75,6 @@ The important settings are:
 ```text
 Build command:    npm run build:render
 Publish directory: demo/dist
-Start command:    leave empty
 ```
 
 The build creates:
