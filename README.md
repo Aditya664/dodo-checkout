@@ -1,74 +1,86 @@
 # Dodo Checkout
 
-Tiny embeddable checkout built for the Dodo Payments frontend assignment.
+Small embeddable checkout demo for the Dodo Payments assignment.
 
-## Demo
+## What is here?
 
-Run the demo locally:
+```text
+sdk/                 iframe SDK used by the merchant page
+demo/                example store and callback log
+checkout/            payment form and fake payment logic
+scripts/             Render build script
+render.yaml          one-click Render Static Site configuration
+```
+
+The flow is intentionally simple:
+
+1. The demo selects a fake product.
+2. `DodoCheckout.open(...)` creates an iframe.
+3. The checkout collects email and card details.
+4. The checkout sends payment events with `postMessage`.
+5. The SDK calls `onSuccess`, `onError`, or `onClose`.
+
+Card details never leave the checkout iframe.
+
+## Run locally
+
+Install dependencies:
 
 ```bash
 cd checkout
 npm install
+cd ../demo
+npm install
+```
+
+Start the checkout in one terminal:
+
+```bash
+cd checkout
 npm run dev -- --host localhost --port 5174
 ```
 
-In a second terminal:
+Start the demo in another terminal:
 
 ```bash
 cd demo
-npm install
 npm run dev -- --host localhost --port 5173
 ```
 
 Open `http://localhost:5173`.
 
-The demo lets you choose between three fake products before opening checkout.
-The checkout runs at `localhost:5174` in an iframe, so card fields belong to
-the checkout origin rather than the merchant page.
+From the repository root, these shortcuts do the same thing:
+
+```bash
+npm run checkout
+npm run demo
+```
 
 ## Deploy to Render
 
-This repository includes a Render Blueprint in [`render.yaml`](./render.yaml).
-It deploys one static site containing both apps:
-
-- `/` serves the demo.
-- `/checkout/` serves the hosted checkout iframe.
-
-Using one static site makes the production iframe same-origin with the demo
-while keeping the checkout UI and card fields isolated in a separate document.
-
-To deploy:
+This is a **Static Site**, not a Web Service.
 
 1. Push the repository to GitHub or GitLab.
 2. In Render, choose **New > Blueprint**.
-3. Select the repository and apply `render.yaml`.
-4. Open the generated `onrender.com` URL.
+3. Select the repository.
+4. Render reads `render.yaml` automatically.
 
-Do not create this as a Render **Web Service**. It is a Render **Static Site**
-Blueprint. If you configure it manually, use **Static Site**, set the build
-command to `npm run build:render`, and set the publish directory to
-`demo/dist`. Leave the start command empty.
+The important settings are:
 
-If the Render service was created manually as a Web Service instead of from
-the Blueprint, use:
+```text
+Build command:    npm run build:render
+Publish directory: demo/dist
+Start command:    leave empty
+```
 
-- **Build command:** `bash scripts/build-render.sh`
-- **Start command:** `npm start`
-- **Environment:** Node
+The build creates:
 
-The root `npm start` serves the already-built `demo/dist` folder on Render's
-`PORT`. `npm run dev` is also available as a compatibility alias for an
-existing service configured with that command; it is not the Vite development
-server.
+```text
+demo/dist/              demo website
+demo/dist/checkout/     checkout iframe
+```
 
-The build is performed by [`scripts/build-render.sh`](./scripts/build-render.sh).
-It builds both Vite apps and copies the checkout output into
-`demo/dist/checkout`. The SDK automatically uses `/checkout/` in production
-and `localhost:5174` when running the two local dev servers.
-
-## The embed API
-
-The host page adds the bundled script and opens checkout:
+## Embed API
 
 ```html
 <script src="/dodo-checkout.js"></script>
@@ -76,95 +88,55 @@ The host page adds the bundled script and opens checkout:
   DodoCheckout.open({
     productId: "prod_123",
     amount: 49,
-    onSuccess: ({ sessionId }) => {
-      console.log("paid", sessionId);
-    },
-    onClose: ({ reason }) => {
-      console.log("closed", reason);
-    },
-    onError: ({ code, message }) => {
-      console.error(code, message);
-    },
+    onSuccess: ({ sessionId }) => console.log("paid", sessionId),
+    onClose: ({ reason }) => console.log("closed", reason),
+    onError: ({ code, message }) => console.error(code, message),
   });
 </script>
 ```
 
-`amount` is included in this demo so the selected fake product and modal
-always show the same value. A real integration should resolve the amount from
-the merchant's server or a signed checkout session, never trust a browser
-amount for payment authorization.
+`amount` is only for keeping this fake demo synchronized. A real payment
+integration must use a server-created, signed checkout session for pricing.
 
-## How the pieces communicate
+## Test cards
 
-1. `demo/src/App.tsx` selects a product and calls the SDK.
-2. `sdk/dodo-checkout.ts` creates a full-screen overlay and iframe, passing
-   `productId` and `amount` as URL parameters.
-3. `checkout/src/App.tsx` resolves the product, collects customer/payment
-   fields, and simulates payment locally.
-4. The checkout iframe sends typed `postMessage` events to its parent.
-5. The SDK accepts messages only from the configured checkout origin and the
-   current iframe window, then invokes the host callback.
-
-The checkout never sends card details to the host page. Only lifecycle data
-crosses the iframe boundary:
-
-- `DODO_CHECKOUT_READY`
-- `DODO_PAYMENT_SUCCESS`
-- `DODO_PAYMENT_ERROR`
-- `DODO_CHECKOUT_CLOSE`
-
-## Fake cards
-
-| Card number | Result |
+| Card | Result |
 | --- | --- |
-| `4242 4242 4242 4242` | Succeeds |
-| `4000 0000 0000 0002` | Always declined |
-| `4000 0000 0000 0341` | Fails once, then succeeds on retry |
+| `4242 4242 4242 4242` | succeeds |
+| `4000 0000 0000 0002` | declines |
+| `4000 0000 0000 0341` | fails once, then succeeds on retry |
 
-Any other card is rejected as an unsupported test card.
+## Why this flow?
 
-## Product decisions
+- Only one checkout can be open at a time, preventing duplicate overlays.
+- The pay button locks while payment is processing.
+- Declines stay in the modal so the customer can retry.
+- Load failures and timeouts notify the host and clean up the iframe.
+- If the browser goes offline during payment, the attempt stops with
+  `NETWORK_ERROR`; the modal stays open so the customer can reconnect and
+  retry, and the host receives `onError`.
+- The SDK validates the message origin and iframe source.
+- Escape closes the modal and page scrolling is restored after close.
 
-### 1. One checkout at a time
+## Decisions and next steps
 
-Calling `open` while a checkout is already open is a no-op. This prevents
-double overlays and duplicate payment attempts. The checkout form also locks
-while a payment request is processing.
+I chose the browser History API instead of adding a router because the demo
+only needs one success route. I also pass the fake amount into the iframe so
+the product picker and checkout visibly agree; production pricing must not
+trust this client-controlled value.
 
-### 2. Errors are explicit and recoverable
+Next I would add a server-created checkout session, configurable checkout
+origins, runtime message validation, focus trapping, and browser tests for
+network interruption and refresh.
 
-Validation errors stay inside the checkout so the customer can correct and
-retry. Load failures and load timeouts are reported through `onError` and
-clean up the overlay, leaving the host page usable. User close, successful
-payment, and programmatic close each produce a host callback.
-
-### Two decisions I went back and forth on
-
-1. **Router dependency vs. a small success route.** I chose the browser History
-   API for the demo success screen. It demonstrates the host receiving the
-   payment result without adding a routing dependency to a tiny integration.
-2. **Host-controlled amount vs. product-only checkout.** I exposed the amount
-   to keep the fake product picker and iframe visibly synchronized, but called
-   out the security boundary: production pricing must come from a trusted
-   server-side session, not a client-controlled URL.
-
-## What I would explore next
-
-- Replace the local payment service with a server-created, signed checkout
-  session.
-- Make the checkout origin configurable and publish a versioned SDK artifact.
-- Add a message schema validator and contract tests for malformed
-  `postMessage` payloads.
-- Add focus trapping and an explicit parent-page focus restoration strategy.
-- Test browser/device behavior around iframe loading, network interruption,
-  refresh, and back-button navigation.
-- Add a custom domain and a short screen recording.
-
-## Validation
-
-Both apps use TypeScript and Vite. Run the checks from each app directory:
+## Checks
 
 ```bash
+cd demo
+npm run lint
+npm run build
+
+cd ../checkout
 npm run lint
 npm run build
 ```

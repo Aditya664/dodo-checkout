@@ -19,8 +19,24 @@ const delay = (ms: number) =>
 export async function processPayment(
   cardNumber: string,
 ): Promise<PaymentResult> {
+  if (!navigator.onLine) {
+    return {
+      success: false,
+      code: "NETWORK_ERROR",
+      message: "Connection lost. Check your internet and try again.",
+    };
+  }
+
   // Simulate payment processing/network delay
   await delay(1200);
+
+  if (!navigator.onLine) {
+    return {
+      success: false,
+      code: "NETWORK_ERROR",
+      message: "Connection lost while processing. No payment was confirmed. Try again.",
+    };
+  }
 
   const normalizedCard = cardNumber.replace(/\s/g, "");
 

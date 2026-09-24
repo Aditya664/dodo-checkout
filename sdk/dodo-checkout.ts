@@ -9,9 +9,7 @@ export interface CheckoutOptions {
 }
 
 type CheckoutMessage =
-  | {
-      type: "DODO_CHECKOUT_READY";
-    }
+  | { type: "DODO_CHECKOUT_READY" }
   | {
       type: "DODO_PAYMENT_SUCCESS";
       sessionId: string;
@@ -33,61 +31,60 @@ class DodoCheckoutSDK {
   private messageHandler: ((event: MessageEvent) => void) | null = null;
   private loadTimer: number | null = null;
   private previousBodyOverflow = "";
-  private readonly checkoutOrigin =
-    window.location.port === "5173"
+
+  private get checkoutOrigin() {
+    return window.location.port === "5173"
       ? "http://localhost:5174"
       : window.location.origin;
-  private readonly checkoutUrl =
-    this.checkoutOrigin === window.location.origin
-      ? `${this.checkoutOrigin}/checkout/`
-      : `${this.checkoutOrigin}/`;
+  }
 
-  public open(options: CheckoutOptions): void {
+  private get checkoutUrl() {
+    return this.checkoutOrigin === window.location.origin
+      ? `${this.checkoutOrigin}/checkout/`
+      : this.checkoutOrigin;
+  }
+
+  public open(options: CheckoutOptions) {
     if (this.iframe) {
       return;
     }
     if (
-      !options?.productId ||
+      !options.productId ||
       !Number.isFinite(options.amount) ||
       options.amount < 0
     ) {
-      options?.onError?.({
+      options.onError?.({
         code: "INVALID_CHECKOUT",
         message: "A valid productId and non-negative amount are required.",
       });
       return;
     }
-
     this.options = options;
     this.previousBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     this.createOverlay();
-    this.listenForMessages();
     this.createIframe();
+    this.listenForMessages();
   }
 
-  public close(reason: CloseReason = "programmatic"): void {
+  public close(reason: CloseReason = "programmatic") {
     const callback = this.options?.onClose;
     this.cleanup();
-    callback?.({
-      reason,
-    });
+    callback?.({ reason });
     this.options = null;
   }
 
-  private createOverlay(): void {
+  private createOverlay() {
     const overlay = document.createElement("div");
     overlay.id = "dodo-checkout-overlay";
     Object.assign(overlay.style, {
       position: "fixed",
       inset: "0",
-      width: "100%",
-      height: "100%",
-      background: "rgba(0, 0, 0, 0.55)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       padding: "16px",
+      background: "rgba(0, 0, 0, 0.55)",
       boxSizing: "border-box",
       zIndex: "2147483647",
     });
@@ -98,17 +95,21 @@ class DodoCheckoutSDK {
     this.overlay = overlay;
   }
 
-  private createIframe(): void {
+  private createIframe() {
     if (!this.overlay || !this.options) {
       return;
     }
+    const { productId, amount } = this.options;
     const iframe = document.createElement("iframe");
-    const productId = encodeURIComponent(this.options.productId);
-    const amount = encodeURIComponent(this.options.amount.toString());
-    iframe.src = `${this.checkoutUrl}?productId=${productId}&amount=${amount}`;
+    const params = new URLSearchParams({
+      productId,
+      amount: amount.toString(),
+    });
+    iframe.src = `${this.checkoutUrl}?${params}`;
     iframe.title = "Dodo Checkout";
     iframe.setAttribute("allow", "payment");
     iframe.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+    iframe.setAttribute("aria-label", "Dodo checkout form");
     Object.assign(iframe.style, {
       width: "100%",
       maxWidth: "480px",
@@ -118,44 +119,40 @@ class DodoCheckoutSDK {
       background: "#fff",
       boxShadow: "0 20px 60px rgba(0,0,0,.25)",
     });
-    iframe.setAttribute("aria-label", "Dodo checkout form");
+    iframe.addEventListener("error", () => {
+      this.handleError(
+        "CHECKOUT_LOAD_ERROR",
+        "Unable to load checkout. Please try again.",
+      );
+      this.cleanup();
+      this.options = null;
+    });
+    this.overlay.appendChild(iframe);
+    this.iframe = iframe;
+    this.startLoadTimer();
+  }
 
+  private startLoadTimer() {
     this.loadTimer = window.setTimeout(() => {
       if (!this.iframe) {
         return;
       }
 
-      this.options?.onError?.({
-        code: "CHECKOUT_TIMEOUT",
-        message: "Checkout took too long to load. Please try again.",
-      });
+      this.handleError(
+        "CHECKOUT_TIMEOUT",
+        "Checkout took too long to load. Please try again.",
+      );
+
       this.cleanup();
       this.options = null;
     }, 10000);
-
-    iframe.addEventListener("error", () => {
-      this.options?.onError?.({
-        code: "CHECKOUT_LOAD_ERROR",
-        message: "Unable to load checkout. Please try again.",
-      });
-
-      this.cleanup();
-      this.options = null;
-    });
-
-    this.overlay.appendChild(iframe);
-
-    this.iframe = iframe;
   }
 
-  private listenForMessages(): void {
+  private listenForMessages() {
     this.messageHandler = (event: MessageEvent) => {
-      // Verify origin
       if (event.origin !== this.checkoutOrigin) {
         return;
       }
-
-      // Verify source
       if (event.source !== this.iframe?.contentWindow) {
         return;
       }
@@ -172,7 +169,7 @@ class DodoCheckoutSDK {
     window.addEventListener("message", this.messageHandler);
   }
 
-  private handleMessage(message: CheckoutMessage): void {
+  private handleMessage(message: CheckoutMessage) {
     switch (message.type) {
       case "DODO_CHECKOUT_READY":
         this.clearLoadTimer();
@@ -192,38 +189,34 @@ class DodoCheckoutSDK {
     }
   }
 
-  private handleSuccess(sessionId: string): void {
+  private handleSuccess(sessionId: string) {
     const callback = this.options?.onSuccess;
 
     this.cleanup();
 
-    callback?.({
-      sessionId,
-    });
+    callback?.({ sessionId });
 
     this.options = null;
   }
 
-  private handleError(code: string, message: string): void {
+  private handleError(code: string, message: string) {
     this.options?.onError?.({
       code,
       message,
     });
   }
 
-  private handleClose(reason: CloseReason): void {
+  private handleClose(reason: CloseReason) {
     const callback = this.options?.onClose;
 
     this.cleanup();
 
-    callback?.({
-      reason,
-    });
+    callback?.({ reason });
 
     this.options = null;
   }
 
-  private cleanup(): void {
+  private cleanup() {
     this.clearLoadTimer();
 
     if (this.messageHandler) {
@@ -233,18 +226,18 @@ class DodoCheckoutSDK {
     }
 
     this.iframe?.remove();
-
     this.overlay?.remove();
 
     this.iframe = null;
-
     this.overlay = null;
+
     document.body.style.overflow = this.previousBodyOverflow;
   }
 
-  private clearLoadTimer(): void {
+  private clearLoadTimer() {
     if (this.loadTimer !== null) {
       window.clearTimeout(this.loadTimer);
+
       this.loadTimer = null;
     }
   }
@@ -257,9 +250,11 @@ declare global {
     DodoCheckout: DodoCheckoutSDK;
   }
 }
+
 if (typeof window !== "undefined") {
   window.DodoCheckout = DodoCheckout;
 }
+
 export { DodoCheckout };
 
 export default DodoCheckout;

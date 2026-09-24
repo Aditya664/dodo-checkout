@@ -61,7 +61,8 @@ const PRODUCTS: Record<string, Product> = {
   prod_launch: {
     id: "prod_launch",
     name: "Launch Kit",
-    description: "A focused toolkit for getting your next idea into production.",
+    description:
+      "A focused toolkit for getting your next idea into production.",
     price: 29,
     currency: "USD",
   },
@@ -73,27 +74,21 @@ const sendMessageToSDK = (message: object) => {
 
 function App() {
   const [product, setProduct] = useState<Product | null>(null);
-
   const [checkoutState, setCheckoutState] = useState<CheckoutState>("idle");
-
   const [errorMessage, setErrorMessage] = useState("");
-
   const [sessionId, setSessionId] = useState("");
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-
     const productId = params.get("productId") || "prod_123";
-
     const selectedProduct = PRODUCTS[productId];
-
     if (!selectedProduct) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setErrorMessage("Product not found.");
       setCheckoutState("error");
       return;
     }
-
     const amountParam = params.get("amount");
     const amount = amountParam === null ? Number.NaN : Number(amountParam);
     if (amountParam !== null && (!Number.isFinite(amount) || amount < 0)) {
@@ -102,16 +97,25 @@ function App() {
       setCheckoutState("error");
       return;
     }
-
     const productWithAmount = Number.isFinite(amount)
       ? { ...selectedProduct, price: amount }
       : selectedProduct;
-
     setProduct(productWithAmount);
-
     sendMessageToSDK({
       type: "DODO_CHECKOUT_READY",
     });
+  }, []);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
   }, []);
 
   const formatCardNumber = (value: string) => {
@@ -124,11 +128,9 @@ function App() {
 
   const formatExpiry = (value: string) => {
     const numbers = value.replace(/\D/g, "").slice(0, 4);
-
     if (numbers.length > 2) {
       return `${numbers.slice(0, 2)}/${numbers.slice(2)}`;
     }
-
     return numbers;
   };
 
@@ -136,29 +138,22 @@ function App() {
     if (checkoutState === "processing") {
       return;
     }
-
     setCheckoutState("processing");
     setErrorMessage("");
-
     try {
       const result = await processPayment(values.cardNumber);
-
       if (result.success) {
         const nextSessionId = result.sessionId;
-
         setSessionId(nextSessionId);
         setCheckoutState("success");
-
         sendMessageToSDK({
           type: "DODO_PAYMENT_SUCCESS",
           sessionId: nextSessionId,
         });
         return;
       }
-
       setErrorMessage(result.message);
       setCheckoutState("error");
-
       sendMessageToSDK({
         type: "DODO_PAYMENT_ERROR",
         code: result.code,
@@ -166,7 +161,6 @@ function App() {
       });
     } catch {
       const message = "Something went wrong. Please try again.";
-
       setErrorMessage(message);
       setCheckoutState("error");
       sendMessageToSDK({
@@ -288,6 +282,16 @@ function App() {
         </Card>
 
         <Divider />
+
+        {!isOnline && (
+          <Alert
+            message="You are offline"
+            description="Reconnect before submitting payment. Your card details stay in this checkout."
+            type="warning"
+            showIcon
+            className="error-alert"
+          />
+        )}
 
         {/* Error */}
         {checkoutState === "error" && errorMessage && (
@@ -423,6 +427,7 @@ function App() {
             type="primary"
             size="large"
             block
+            disabled={!isOnline}
             loading={checkoutState === "processing"}
             icon={checkoutState !== "processing" ? <LockOutlined /> : undefined}
           >
