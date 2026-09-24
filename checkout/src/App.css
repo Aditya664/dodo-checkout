@@ -1,0 +1,145 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f5f7fa;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.checkout-page {
+  min-height: 100vh;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: checkout-enter 180ms ease-out;
+}
+
+.checkout-card {
+  width: 100%;
+  max-width: 480px;
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+}
+
+.checkout-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.brand {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #111827;
+}
+
+.checkout-title {
+  margin-top: 6px !important;
+  margin-bottom: 0 !important;
+}
+
+.product-card {
+  margin-top: 24px;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.product-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.price {
+  font-size: 18px;
+  white-space: nowrap;
+}
+
+.error-alert {
+  margin-bottom: 20px;
+  animation: checkout-enter 180ms ease-out;
+}
+
+.checkout-card :focus-visible {
+  outline: 3px solid #91caff;
+  outline-offset: 2px;
+}
+
+.secure-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 18px;
+  font-size: 12px;
+}
+
+.test-card {
+  margin-top: 20px;
+  background: #fafafa;
+  font-size: 11px;
+}
+
+.test-card > div {
+  margin-top: 5px;
+}
+
+.session-card {
+  text-align: left;
+  background: #fafafa;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.checkout-loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+}
+
+@keyframes checkout-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkout-page,
+  .error-alert {
+    animation: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .checkout-page {
+    padding: 12px;
+  }
+
+  .checkout-card {
+    border-radius: 14px;
+  }
+
+  .checkout-title {
+    font-size: 21px !important;
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "antd": "^6.6.5"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  }
+}
